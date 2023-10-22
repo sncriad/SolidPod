@@ -1,0 +1,24 @@
+{
+  "name": "solidcorepod",
+  "version": "1.0.0",
+  "description": "Basic Solid Pod created by Brown University Students",
+  "main": "index.js",
+
+  "scripts": {
+    "start": "ts-node ./main.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "acljs": "^1.1.0",
+    "express": "^4.18.2",
+    "sequelize": "^6.33.0",
+    "webid": "^0.3.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.7",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  },
+  "keywords": []
+}
