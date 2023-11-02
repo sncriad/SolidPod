@@ -3,16 +3,18 @@
   "version": "1.0.0",
   "description": "Basic Solid Pod created by Brown University Students",
   "main": "index.js",
-
   "scripts": {
     "start": "ts-node ./main.ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@inrupt/solid-client-authn-node": "^1.17.3",
+    "@solid/access-token-verifier": "^2.0.5",
     "acljs": "^1.1.0",
     "express": "^4.18.2",
     "sequelize": "^6.33.0",
+    "superagent": "^6.1.0",
     "webid": "^0.3.11"
   },
   "devDependencies": {
