@@ -5,7 +5,7 @@ import { createServer, IncomingMessage, ServerResponse, OutgoingHttpHeader} from
 import type { RequestMethod, SolidTokenVerifierFunction } from '@solid/access-token-verifier';
 // This also works but VSCode is jank
 import { createSolidTokenVerifier } from '@solid/access-token-verifier';
-import { readFile, editFile, fileAccessOptions, createOrReplaceFile } from 'fileAccess';
+import { readFile, editFile, fileAccessOptions, createOrReplaceFile, deleteFile } from 'fileAccess';
 
 const hostname = '127.0.0.1';
 // Listening on this port on my wifi right now!
@@ -38,7 +38,9 @@ const server = createServer(async (request, response) => {
     } else if (request.method === 'POST' || request.method === 'PUT') {
       createOrReplaceFile(request, response);
     } else if (request.method === 'PATCH') {
-      editFile(request, response); // QUESTION: is this what PATCH is for? 
+      editFile(request, response); 
+    } else if (request.method === 'DELETE') {
+      deleteFile(request, response); 
     }
 });
 
