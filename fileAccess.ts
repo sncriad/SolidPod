@@ -1,7 +1,7 @@
 const http = require('http');
 const request = require('request');
 const fs = require('fs');
-import express, { Request, Response } from 'express';
+import { Request, Response } from 'express';
 
 const headers = {
   'Allow': 'GET, HEAD, OPTION', 
@@ -10,7 +10,7 @@ const headers = {
   'Accept-Post': 'application/text'
 }
 
-export async function readFile(req: Request, res: Response): void {
+export async function readFile(req: Request, res: Response): Promise<void> {
   const dirPath = req.url;
   const slug = req.headers.slug;
   const link = req.headers.link;
@@ -29,7 +29,7 @@ export async function readFile(req: Request, res: Response): void {
   }
 };
 
-export async function editFile(req: Request, res: Response): void {
+export async function editFile(req: Request, res: Response): Promise<void> {
   const dirPath = req.url;
   const slug = req.headers.slug;
   const link = req.headers.link;
@@ -48,7 +48,7 @@ export async function editFile(req: Request, res: Response): void {
 };
 
 // for post and put requests
-export async function createOrReplaceFile(req: Request, res: Response): void {
+export async function createOrReplaceFile(req: Request, res: Response): Promise<void> {
   const dirPath = req.url;
   const slug = req.headers.slug;
   const link = req.headers.link;
