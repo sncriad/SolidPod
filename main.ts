@@ -9,6 +9,7 @@ import { createSolidTokenVerifier } from '@solid/access-token-verifier';
 import {Request, Response} from 'express'
 import * as express from 'express';
 var cors = require('cors')
+import { readFile, editFile, fileAccessOptions, createOrReplaceFile, deleteFile } from 'fileAccess';
 
 const hostname = '127.0.0.1';
 // Listening on this port on my wifi right now!
@@ -20,6 +21,7 @@ app.use(cors())
 const solidOidcAccessTokenVerifier: SolidTokenVerifierFunction = createSolidTokenVerifier();
 
 // Basic authorization script for given HTTP server. https://github.com/CommunitySolidServer/access-token-verifier
+
 
 app.get('/', async (req: Request, res: Response) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
