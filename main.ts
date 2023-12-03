@@ -3,7 +3,7 @@
 import { createServer, IncomingMessage, ServerResponse, OutgoingHttpHeader} from 'http';
 // This works but VSCode is jank
 import type { RequestMethod, SolidTokenVerifierFunction } from '@solid/access-token-verifier';
-import { handleGet, editFile, fileAccessOptions, handlePutRequest, deleteFile } from '../SolidPod/fileAccess'
+import { handleGet, editFile, handlePutRequest, deleteFile } from '../SolidPod/fileAccess'
 // This also works but VSCode is jank
 import { createSolidTokenVerifier } from '@solid/access-token-verifier';
 import {Request, Response} from 'express'
@@ -39,9 +39,9 @@ app.all("*", async (req: Request, res: Response) => {
     if (req.method === 'GET') {
       handleGet(req, res, webId);
     } else if (req.method === 'PUT' || req.method === 'POST') {
-      handlePutRequest(req, res);
+      handlePutRequest(req, res, webId);
     } else if (req.method === 'DELETE') {
-      deleteFile(req, res); 
+      deleteFile(req, res, webId); 
     }
     // } else if (req.method === 'OPTIONS') {
     //   res.status(204);

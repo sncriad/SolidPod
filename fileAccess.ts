@@ -61,23 +61,31 @@ function generateDirectorySimLDP(dirpath : string, hash: string, stats : any) : 
   return message;
 }
 export async function handleGet(req: Request, res: Response, webId : string) : Promise<any>{
-  var hash = crypto.createHash('sha256').update("giberish").digest('hex');
+  var hash = crypto.createHash('sha256').update(webId).digest('hex');
+  console.log(hash);
   const dirpath = "UserData/" + hash + req.url;
-  // TODO - Add dirpath formatting properly.
-  let message : any = ""
-  try{
-    const stats = fs.statSync(dirpath);
-    if(stats.isDirectory()) {
-        message = generateDirectorySimLDP(dirpath, hash, stats);
-        res.status(200);
-     } else {
-        message = readFileSync(dirpath);
-        res.status(200);
-     }
+  // Check - Everyone can have a data folder, if you don't have one. then fix it.
+  try {
+    fs.statSync("UserData/" + hash);
   } catch {
-    message = "Requested File/Read ran into issues";
-  } finally { 
-    res.send(message);
+    fs.mkdirSync("UserData/" + hash, { recursive: true });
+  } finally {
+    let message : any = ""
+    try{
+      const stats = fs.statSync(dirpath);
+      if(stats.isDirectory()) {
+          message = generateDirectorySimLDP(dirpath, hash, stats);
+          res.status(200);
+      } else {
+          message = readFileSync(dirpath);
+          res.status(200);
+      }
+    } catch {
+      message = "Requested File/Read ran into issues";
+    } finally { 
+      console.log(message);
+      res.send(message);
+    }
   }
 }
 
@@ -100,8 +108,8 @@ export async function editFile(req: Request, res: Response): Promise<void> {
 };
 
 // for post and put requests
-export async function handlePutRequest(req: Request, res: Response): Promise<void> {
-  var hash = crypto.createHash('sha256').update("giberish").digest('hex');
+export async function handlePutRequest(req: Request, res: Response, webId: string): Promise<void> {
+  var hash = crypto.createHash('sha256').update(webId).digest('hex');
   const dirpath = "UserData/" + hash + req.url;
   if(dirpath[-1] === '/'){
     res.status(409);
@@ -113,8 +121,8 @@ export async function handlePutRequest(req: Request, res: Response): Promise<voi
   res.send("Created");
 }
 
-export async function deleteFile(req: Request, res: Response) {
-  var hash = crypto.createHash('sha256').update("giberish").digest('hex');
+export async function deleteFile(req: Request, res: Response, webId: string) {
+  var hash = crypto.createHash('sha256').update(webId).digest('hex');
   const dirPath = "UserData/" + hash + req.url;
   const dirPathWellFormed = await fs.statSync(dirPath).isDirectory();
   if(dirPathWellFormed){
@@ -137,7 +145,7 @@ export async function deleteFile(req: Request, res: Response) {
   }
 }
 
-export function fileAccessOptions (res: Response): void {
-  res.writeHead(204, headers);
-  res.end();
-};
+// export function fileAccessOptions (res: Response): void {
+//   res.writeHead(204, headers);
+//   res.end();
+// };
