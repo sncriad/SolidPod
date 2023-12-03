@@ -11,10 +11,14 @@
   "dependencies": {
     "@inrupt/solid-client-authn-node": "^1.17.3",
     "@solid/access-token-verifier": "^2.0.5",
+    "@types/stats": "^0.16.30",
     "acljs": "^1.1.0",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "express": "^4.18.2",
     "http-server": "^14.1.1",
+    "negotiator": "^0.6.3",
+    "rdflib": "^2.2.33",
     "sequelize": "^6.33.0",
     "superagent": "^6.1.0",
     "webid": "^0.3.11"
