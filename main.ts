@@ -12,11 +12,16 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 // Listening on this port on my wifi right now!
 const port = 44444;
- 
+const https = require("https")
 const app = express();
 app.use(cors())
 app.use(bodyParser.raw({ inflate: true, limit: '100kb', type: "*/*" }))
 const solidOidcAccessTokenVerifier: SolidTokenVerifierFunction = createSolidTokenVerifier();
+
+//HTTPS Secure key stuff - will need to regenerate stuff on other devices:
+const fs = require('fs');
+const key = fs.readFileSync('./key.pem', 'utf8');
+const cert = fs.readFileSync('./cert.pem', 'utf8');
 
 app.all("*", async (req: Request, res: Response) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,9 +29,9 @@ app.all("*", async (req: Request, res: Response) => {
   res.setHeader('Access-Control-Expose-Headers', 'Authorization, User, Location, Link, Vary, Last-Modified, ETag, Accept-Patch, Accept-Post, Updates-Via, Allow, WAC-Allow, Content-Length, WWW-Authenticate, MS-Author-Via, X-Powered-By');
   res.setHeader('Allow', "OPTIONS, HEAD, GET, PATCH, POST, PUT, DELETE")
   res.setHeader('Content-Type', 'text/turtle')
+  console.log("Received Contact");
   try {
     // Should throw error if request parses badly.
-    console.log(req.method)
     const { client_id: clientId, webid: webId } = await solidOidcAccessTokenVerifier(
       req.headers.authorization as string
       , {
@@ -64,7 +69,11 @@ app.all("*", async (req: Request, res: Response) => {
     res.send();
   }
 });
+var httpsServer = https.createServer({key: key, cert: cert}, app);
 // If running on localhost, delete the "0.0.0.0"
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+// app.listen(port, "0.0.0.0", () => {
+//   console.log(`Server running at http://localhost:${port}`);
+// });
+httpsServer.listen(44444, () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });

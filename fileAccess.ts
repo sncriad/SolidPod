@@ -82,6 +82,7 @@ export async function handleGet(req: Request, res: Response, webId : string) : P
       }
     } catch {
       message = "Requested File/Read ran into issues";
+      res.status(409)
     } finally { 
       console.log(message);
       res.send(message);
@@ -111,7 +112,7 @@ export async function editFile(req: Request, res: Response): Promise<void> {
 export async function handlePutRequest(req: Request, res: Response, webId: string): Promise<void> {
   var hash = crypto.createHash('sha256').update(webId).digest('hex');
   const dirpath = "UserData/" + hash + req.url;
-  if(dirpath[-1] === '/'){
+  if(dirpath[-1] === '/' || dirpath.indexOf('../') > -1){
     res.status(409);
     res.send("PUT does not work with containers");
   }
