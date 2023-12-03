@@ -1,9 +1,14 @@
 const http = require('http');
+var path = require('path');
 const request = require('request');
 const fs = require('fs');
 const crypto = require('crypto')
+ 
 import { Request, Response } from 'express';
 import W3CHeaders from './constants/defaultHeaders';
+import { readFileSync } from 'fs';
+import { mkdirp } from 'mkdirp';
+
 
 const headers = {
   'Allow': 'GET, HEAD, OPTION', 
@@ -19,10 +24,13 @@ function generateDirectorySimLDP(dirpath : string, hash: string, stats : any) : 
   // Add "current top level directory"
   var toplevel = "rec" + hash.substring(0, 5) + ":\n";
   var resources = "";
-  toplevel += "     dct:modified " + '"' + stats.mtime.toJSON() + '"' + "^^xsd:dateTime;\n     ldp:contains\n";
+  toplevel += "     dct:modified " + '"' + stats.mtime.toJSON() + '"' + "^^xsd:dateTime;\n";
   var rest = "";
   // Callback abomination
   const filenames = fs.readdirSync(dirpath);
+  if(filenames.length != 0){
+    toplevel += "     ldp:contains\n";
+  }
   filenames.forEach(
     (file : string) => {
       try{
@@ -49,34 +57,29 @@ function generateDirectorySimLDP(dirpath : string, hash: string, stats : any) : 
   );
   prefixes += "\n";
   resources += resources ? ";\n" : "";
-  console.log
   message = message + prefixes + toplevel + resources + "     stat:mtime " + stats.mtimeMs + ";\n" + "     stat:size " + stats.blksize + ".\n" + rest;
   return message;
 }
 export async function handleGet(req: Request, res: Response, webId : string) : Promise<any>{
   var hash = crypto.createHash('sha256').update("giberish").digest('hex');
-  const dirpath = "UserData/" + hash +"/";
+  const dirpath = "UserData/" + hash + req.url;
   // TODO - Add dirpath formatting properly.
-  // console.log(dirpath);
-  let message = ""
+  let message : any = ""
   try{
     const stats = fs.statSync(dirpath);
     if(stats.isDirectory()) {
         message = generateDirectorySimLDP(dirpath, hash, stats);
         res.status(200);
      } else {
-  
+        message = readFileSync(dirpath);
+        res.status(200);
      }
   } catch {
-    message = "Requested Filepath DNE";
+    message = "Requested File/Read ran into issues";
   } finally { 
     res.send(message);
   }
 }
-
-
-function readFile(filename : string){
-};
 
 export async function editFile(req: Request, res: Response): Promise<void> {
   const dirPath = req.url + "";
@@ -97,65 +100,44 @@ export async function editFile(req: Request, res: Response): Promise<void> {
 };
 
 // for post and put requests
-export async function createOrReplaceFile(req: Request, res: Response): Promise<void> {
-  const dirPath = req.url;
-  const slug = req.headers.slug;
-  const link = req.headers.link;
-  if (!slug || !link) {
-    res.status(400).send("Slug and link headers required");
-    return;
+export async function handlePutRequest(req: Request, res: Response): Promise<void> {
+  var hash = crypto.createHash('sha256').update("giberish").digest('hex');
+  const dirpath = "UserData/" + hash + req.url;
+  if(dirpath[-1] === '/'){
+    res.status(409);
+    res.send("PUT does not work with containers");
   }
-  const dirPathWellFormed = await fs.statSync(dirPath).isDirectory(); 
-  if (dirPathWellFormed) {
-    const stuffToWrite = req.body;
-    fs.writeFile('~/test_dir/test_file.txt', stuffToWrite);
-  } else {
-    res.status(400).send("URL must be a directory path");
-  }
+  mkdirp.sync(path.dirname(dirpath));
+  fs.writeFile(dirpath, req.body.toString('utf-8').toString() || "", function() {});
+  res.status(201);
+  res.send("Created");
 }
 
 export async function deleteFile(req: Request, res: Response) {
-  const dirPath = req.url;
-  const slug = req.headers.slug;
-  const link = req.headers.link;
-  if (!slug || !link) {
-    res.status(400).send("Slug and link headers required");
-    return;
-  }
-  const dirPathWellFormed = await fs.statSync(dirPath).isDirectory(); 
-  if (dirPathWellFormed) {
-    var isDir = true;
-    fs.stat(dirPath, (err: Error, stats: any) => {
-      if (err) {
-        res.status(400).send("Error deleting the directory");
-        return;
-      }
-      if (stats.isFile()) {
-        isDir = false;
-      } else if (stats.isDirectory()) {
-        isDir = true;
+  var hash = crypto.createHash('sha256').update("giberish").digest('hex');
+  const dirPath = "UserData/" + hash + req.url;
+  const dirPathWellFormed = await fs.statSync(dirPath).isDirectory();
+  if(dirPathWellFormed){
+    fs.rmdir(dirPath, {recursive: true}, (err : any) => {
+      if(!err){
+        res.status(202);
+        res.send("Ok")
       } else {
-        res.status(400).send("Error deleting the directory");
-        return;
+        res.status(402);
+        res.send("Delete Failed :(")
       }
     });
-    var dirIsEmpty = isDir && (fs.readdirSync(dirPath).length === 0);
-    // if empty or not dir:
-    if (dirIsEmpty || !isDir) {
-      fs.unlink(dirPath, (err: Error) => {
-        if (err) {
-          res.status(400).send("Error deleting file");
-        } else {
-          res.status(200).send("File deleted");
-        }
-    })}
-    // else send error as specified
   } else {
-    res.status(400).send("URL must be a directory path");
+    fs.unlink(dirPath, (err : any) => {
+      if(!err){
+        res.status(202);
+        res.send("Ok")
+      }
+    });
   }
 }
 
 export function fileAccessOptions (res: Response): void {
-  res.writeHead(200, headers);
+  res.writeHead(204, headers);
   res.end();
 };
