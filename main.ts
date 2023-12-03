@@ -71,9 +71,9 @@ app.all("*", async (req: Request, res: Response) => {
 });
 var httpsServer = https.createServer({key: key, cert: cert}, app);
 // If running on localhost, delete the "0.0.0.0"
-// app.listen(port, "0.0.0.0", () => {
-//   console.log(`Server running at http://localhost:${port}`);
-// });
-httpsServer.listen(44444, () => {
-    console.log(`Server running at http://localhost:${port}`);
-  });
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+// httpsServer.listen(44444, () => {
+//     console.log(`Server running at http://localhost:${port}`);
+//   });
