@@ -60,9 +60,30 @@ function generateDirectorySimLDP(dirpath : string, hash: string, stats : any) : 
   message = message + prefixes + toplevel + resources + "     stat:mtime " + stats.mtimeMs + ";\n" + "     stat:size " + stats.blksize + ".\n" + rest;
   return message;
 }
+export async function handleHead(req: Request, res: Response, webId : string) : Promise<any>{
+  var hash = crypto.createHash('sha256').update(webId).digest('hex');
+  const dirpath = "UserData/" + hash + req.url;
+    // Check - Everyone can have a data folder, if you don't have one. then fix it.
+  let message : any = ""
+  try{
+    const stats = fs.statSync(dirpath);
+    if(stats.isDirectory()) {
+        message = generateDirectorySimLDP(dirpath, hash, stats);
+        res.status(200);
+    } else {
+        message = readFileSync(dirpath);
+        res.status(200);
+    }
+  } catch {
+    message = "Requested File/Read ran into issues";
+    res.status(404)
+  } finally { 
+    res.setHeader("Content-Length", message.length.toString())
+    res.send(message);
+  }
+}
 export async function handleGet(req: Request, res: Response, webId : string) : Promise<any>{
   var hash = crypto.createHash('sha256').update(webId).digest('hex');
-  console.log(hash);
   const dirpath = "UserData/" + hash + req.url;
   // Check - Everyone can have a data folder, if you don't have one. then fix it.
   try {
@@ -84,7 +105,6 @@ export async function handleGet(req: Request, res: Response, webId : string) : P
       message = "Requested File/Read ran into issues";
       res.status(409)
     } finally { 
-      console.log(message);
       res.send(message);
     }
   }
@@ -111,13 +131,19 @@ export async function editFile(req: Request, res: Response): Promise<void> {
 // for post and put requests
 export async function handlePutRequest(req: Request, res: Response, webId: string): Promise<void> {
   var hash = crypto.createHash('sha256').update(webId).digest('hex');
-  const dirpath = "UserData/" + hash + req.url;
-  if(dirpath[-1] === '/' || dirpath.indexOf('../') > -1){
+  const slugfmt = req.headers.slug ? req.headers.slug + "/" : ''; 
+  const dirpath = "UserData/" + hash + req.url + slugfmt;
+  if(dirpath.indexOf('../') > -1){
     res.status(409);
-    res.send("PUT does not work with containers");
+    res.send("This server does not support ../ statements.");
+    return;
   }
   mkdirp.sync(path.dirname(dirpath));
-  fs.writeFile(dirpath, req.body.toString('utf-8').toString() || "", function() {});
+  if (dirpath.slice(-1) === "/"){
+    mkdirp.sync(dirpath);
+  } else {
+    fs.writeFile(dirpath, req.body.toString('utf-8').toString() || "", function() {});
+  }
   res.status(201);
   res.send("Created");
 }
@@ -145,8 +171,3 @@ export async function deleteFile(req: Request, res: Response, webId: string) {
     });
   }
 }
-
-// export function fileAccessOptions (res: Response): void {
-//   res.writeHead(204, headers);
-//   res.end();
-// };

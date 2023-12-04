@@ -3,7 +3,7 @@
 import { createServer, IncomingMessage, ServerResponse, OutgoingHttpHeader} from 'http';
 // This works but VSCode is jank
 import type { RequestMethod, SolidTokenVerifierFunction } from '@solid/access-token-verifier';
-import { handleGet, editFile, handlePutRequest, deleteFile } from '../SolidPod/fileAccess'
+import { handleGet, editFile, handlePutRequest, deleteFile, handleHead} from '../SolidPod/fileAccess'
 // This also works but VSCode is jank
 import { createSolidTokenVerifier } from '@solid/access-token-verifier';
 import {Request, Response} from 'express'
@@ -29,7 +29,7 @@ app.all("*", async (req: Request, res: Response) => {
   res.setHeader('Access-Control-Expose-Headers', 'Authorization, User, Location, Link, Vary, Last-Modified, ETag, Accept-Patch, Accept-Post, Updates-Via, Allow, WAC-Allow, Content-Length, WWW-Authenticate, MS-Author-Via, X-Powered-By');
   res.setHeader('Allow', "OPTIONS, HEAD, GET, PATCH, POST, PUT, DELETE")
   res.setHeader('Content-Type', 'text/turtle')
-  console.log("Received Contact");
+  console.log("Received Query Requesting: " + req.method);
   try {
     // Should throw error if request parses badly.
     const { client_id: clientId, webid: webId } = await solidOidcAccessTokenVerifier(
@@ -44,14 +44,19 @@ app.all("*", async (req: Request, res: Response) => {
     if (req.method === 'GET') {
       handleGet(req, res, webId);
     } else if (req.method === 'PUT' || req.method === 'POST') {
+      console.log(req.url);
       handlePutRequest(req, res, webId);
     } else if (req.method === 'DELETE') {
       deleteFile(req, res, webId); 
-    }
-    // } else if (req.method === 'OPTIONS') {
-    //   res.status(204);
-    //   res.send();
-    // }  else if (req.method == 'HEAD'){
+    } else if (req.method == 'HEAD'){
+      // Temp value for content-length. Should be fine
+      handleHead(req, res, webId);
+      res.send();
+    }else if (req.method === 'OPTIONS') {
+      res.setHeader("Allow", "OPTIONS, HEAD, GET, PATCH, POST, PUT, DELETE");
+      res.status(204);
+      res.send();
+    } // else if (req.method == 'HEAD'){
     //   res.status(404);
     //   res.send();
     // }
@@ -64,9 +69,9 @@ app.all("*", async (req: Request, res: Response) => {
   }catch (error: unknown) {
     // error = true;
     const message = `Either not logged in or connection is being established. Respond with sec-headers`;
-    res.setHeader('WWW-Authenticate', '*');
-    // res.status(401)
-    res.send();
+    // res.setHeader('WWW-Authenticate', '*');
+    // // res.status(401)
+    // res.send();
   }
 });
 var httpsServer = https.createServer({key: key, cert: cert}, app);
