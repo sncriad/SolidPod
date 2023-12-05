@@ -29,7 +29,7 @@ app.all("*", async (req: Request, res: Response) => {
   res.setHeader('Access-Control-Expose-Headers', 'Authorization, User, Location, Link, Vary, Last-Modified, ETag, Accept-Patch, Accept-Post, Updates-Via, Allow, WAC-Allow, Content-Length, WWW-Authenticate, MS-Author-Via, X-Powered-By');
   res.setHeader('Allow', "OPTIONS, HEAD, GET, PATCH, POST, PUT, DELETE")
   res.setHeader('Content-Type', 'text/turtle')
-  console.log("Received Query Requesting: " + req.method);
+  var use = req.url
   try {
     // Should throw error if request parses badly.
     const { client_id: clientId, webid: webId } = await solidOidcAccessTokenVerifier(
@@ -43,35 +43,25 @@ app.all("*", async (req: Request, res: Response) => {
     );
     if (req.method === 'GET') {
       handleGet(req, res, webId);
-    } else if (req.method === 'PUT' || req.method === 'POST') {
+    } else if (req.method === 'PUT' || req.method === 'POST' || req.method == 'PATCH') {
       console.log(req.url);
       handlePutRequest(req, res, webId);
     } else if (req.method === 'DELETE') {
       deleteFile(req, res, webId); 
     } else if (req.method == 'HEAD'){
-      // Temp value for content-length. Should be fine
       handleHead(req, res, webId);
       res.send();
     }else if (req.method === 'OPTIONS') {
       res.setHeader("Allow", "OPTIONS, HEAD, GET, PATCH, POST, PUT, DELETE");
       res.status(204);
       res.send();
-    } // else if (req.method == 'HEAD'){
-    //   res.status(404);
-    //   res.send();
-    // }
-    // res.send()
-    // } else if (req.method === 'PATCH') {
-    //   editFile(req, res); 
-    //... Look at retrievable resources from this point forward
-    // Enter ACL and attempt to retrieve resource... may require more work from here, but we can cache client/webId
-      // res.send(message)
+    }
+    // Note - Server does not support sparql stuff at the moment.
   }catch (error: unknown) {
     // error = true;
-    const message = `Either not logged in or connection is being established. Respond with sec-headers`;
-    // res.setHeader('WWW-Authenticate', '*');
-    // // res.status(401)
-    // res.send();
+    console.log(error)
+    res.status(401)
+    res.send();
   }
 });
 var httpsServer = https.createServer({key: key, cert: cert}, app);

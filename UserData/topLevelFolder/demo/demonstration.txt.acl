@@ -1,0 +1,7 @@
+@prefix acl: <http://www.w3.org/ns/auth/acl#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+<#ReadWriteAppendControl-0> a acl:Authorization;
+    acl:agent <https://sncriado.solidcommunity.net/profile/card#me>;
+    acl:accessTo <./demonstration.txt>;
+    acl:mode acl:Write, acl:Control, acl:Append, acl:Read.
