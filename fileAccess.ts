@@ -24,16 +24,18 @@ const headers = {
 // Function to generate a simulation of LDP file structure.
 function generateDirectorySimLDP(dirpath : string, hash: string, stats : any) : string{
   var message = W3CHeaders;
-  var prefixes = "@prefix " + "rec" +hash.substring(0, 5) + ": <>.\n";
+  const lastElem = hash.split("/");
+  const toPrefix = lastElem[lastElem.length - 2];
+  var prefixes = "@prefix " + "rec" + toPrefix.substring(0, Math.min(5, toPrefix.length)) + ": <>.\n";
   // Add "current top level directory"
-  var toplevel = "rec" + hash.substring(0, 5) + ":\n";
+  var toplevel = "rec" + toPrefix.substring(0, Math.min(5, toPrefix.length)) + ":\n";
   var resources = "";
   toplevel += "     dct:modified " + '"' + stats.mtime.toJSON() + '"' + "^^xsd:dateTime;\n";
   var rest = "";
   // Callback abomination
   const filenames = fs.readdirSync(dirpath);
   if(filenames.length != 0){
-    toplevel += "     ldp:contains\n";
+    toplevel += "     ldp:contains ";
   }
   filenames.forEach(
     (file : string) => {
@@ -41,14 +43,15 @@ function generateDirectorySimLDP(dirpath : string, hash: string, stats : any) : 
         if(!(path.extname(file) === ".acl")){
           // Construct turtle
           const stats = fs.statSync(dirpath + file +"/");
-          resources += (resources != '') ? ', ' : "     "
-          prefixes += '@prefix ' + file.substring(0, 3) + ': </' + file + '/>.\n';
+          resources += (resources != '') ? ', ' : ""
           if(stats.isDirectory()){
             // Temporary resource mapping
+            prefixes += '@prefix ' + file.substring(0, 3) + ': <' + file + '/>.\n';
             resources += file.substring(0, 3) + ":"
             rest += file.substring(0, 3) + ":\n"
             rest += '     a ldp:BasicContainer, ldp:Container, ldp:Resource;\n';
           } else {
+            prefixes += '@prefix ' + file.substring(0, 3) + ': </' + file + '/>.\n';
             resources += '</' + file + '/>'
             rest += '</' + file + '/>\n'
             rest += '     a vnd:Resource, ldp:Resource;\n';
@@ -56,7 +59,8 @@ function generateDirectorySimLDP(dirpath : string, hash: string, stats : any) : 
           rest += '     dct:modified ' + '"' + stats.mtime.toJSON() + '"' + "^^xsd:dateTime;\n";
           rest += '     stat:mtime ' + stats.mtimeMs + ";\n";
           rest += '     stat:size ' + stats.blksize + " .\n";
-        } }catch {
+        } 
+      }catch {
         console.log("No idea how this managed to happen;")
       }
     }
@@ -149,7 +153,7 @@ export async function handleHead(req: Request, res: Response, webId : string) : 
   try{
     const stats = fs.statSync(dirpath);
     if(stats.isDirectory()) {
-        message = generateDirectorySimLDP(dirpath, hash, stats);
+        message = generateDirectorySimLDP(dirpath, hash + req.url, stats);
         res.status(200);
     } else {
         message = readFileSync(dirpath);
@@ -166,12 +170,13 @@ export async function handleHead(req: Request, res: Response, webId : string) : 
 export async function handleGet(req: Request, res: Response, webId : string) : Promise<any>{
   // At the moment, Get is open access. Anyone can access data.
   var hash = "topLevelFolder"
-  const dirpath = "UserData/" + hash + req.url;
+  let dirpath = "UserData/" + hash + req.url;
   let message : any = ""
   try{
     const stats = fs.statSync(dirpath);
     if(stats.isDirectory()) {
-        message = await generateDirectorySimLDP(dirpath, hash, stats);
+        message = await generateDirectorySimLDP(dirpath, hash + req.url, stats);
+        res.setHeader("Link", '<.acl>; rel="acl", <.meta>; rel="describedBy", <http://www.w3.org/ns/ldp#Container>; rel="type", <http://www.w3.org/ns/ldp#BasicContainer>; rel="type"');
         res.status(200);
     } else {
         message = await readFileSync(dirpath);
@@ -234,8 +239,8 @@ export async function deleteFile(req: Request, res: Response, webId: string) {
   const dirPath = "UserData/" + hash + req.url;
   const dirPathWellFormed = await fs.statSync(dirPath).isDirectory();
   if(dirPathWellFormed){
-    let aclloc = dirPath.substring(0, dirPath.length - 1) + ".acl"
-    fs.rmdir(dirPath, {recursive: true}, (err : any) => {
+    let aclloc = dirPath + ".acl"
+    fs.rm(dirPath, {recursive: true}, (err : any) => {
       if(err){
         res.status(402);
         res.send("Delete Failed :(")

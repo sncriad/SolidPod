@@ -17,7 +17,7 @@ const app = express();
 app.use(cors())
 app.use(bodyParser.raw({ inflate: true, limit: '100kb', type: "*/*" }))
 const solidOidcAccessTokenVerifier: SolidTokenVerifierFunction = createSolidTokenVerifier();
-
+const ip = ""
 //HTTPS Secure key stuff - will need to regenerate stuff on other devices:
 const fs = require('fs');
 const key = fs.readFileSync('./key.pem', 'utf8');
@@ -38,9 +38,10 @@ app.all("*", async (req: Request, res: Response) => {
         header : req.headers.dpop as string,
         method : req.method as RequestMethod,
         // This would need to be changed if its running on another device. For now this is fine to HC
-        url : "http://24.250.32.37:44444" + req.url as string
+        url : ip + req.url as string
       }
     );
+    console.log("Received: " + req.method + " For WEBID :" + webId + "  From host: " + req.headers.origin);
     if (req.method === 'GET') {
       handleGet(req, res, webId);
     } else if (req.method === 'PUT' || req.method === 'POST' || req.method == 'PATCH') {
@@ -50,7 +51,6 @@ app.all("*", async (req: Request, res: Response) => {
       deleteFile(req, res, webId); 
     } else if (req.method == 'HEAD'){
       handleHead(req, res, webId);
-      res.send();
     }else if (req.method === 'OPTIONS') {
       res.setHeader("Allow", "OPTIONS, HEAD, GET, PATCH, POST, PUT, DELETE");
       res.status(204);

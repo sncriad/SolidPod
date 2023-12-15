@@ -5,7 +5,3 @@
     acl:agentClass foaf:Agent;
     acl:accessTo <./topLevelFolder>;
     acl:mode acl:Read, acl:Write, acl:Append, acl:Control.
-<#ReadWriteAppendControl-1> a acl:Authorization;
-    acl:agent <https://sncriado.solidcommunity.net/profile/card#me>;
-    acl:accessTo <./topLevelFolder>;
-    acl:mode acl:Write, acl:Control, acl:Append, acl:Read.

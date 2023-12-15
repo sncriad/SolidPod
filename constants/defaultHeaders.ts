@@ -1,5 +1,5 @@
 var W3CHeaders = ""
-W3CHeaders += "@prefix : </#>.\n" ;
+W3CHeaders += "@prefix : <#>.\n" ;
 W3CHeaders += "@prefix dct: <http://purl.org/dc/terms/>.\n"
 W3CHeaders += "@prefix ldp: <http://www.w3.org/ns/ldp#>.\n" ;
 W3CHeaders += "@prefix solid: <http://www.w3.org/ns/solid/terms#>.\n"

@@ -3,5 +3,5 @@
 
 <#ReadWriteAppendControl-0> a acl:Authorization;
     acl:agent <https://sncriado.solidcommunity.net/profile/card#me>;
-    acl:accessTo <./demo>;
+    acl:accessTo <./demoFolder>;
     acl:mode acl:Write, acl:Control, acl:Append, acl:Read.
