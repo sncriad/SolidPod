@@ -12,8 +12,7 @@ import { Request, Response } from 'express';
 import W3CHeaders from './constants/defaultHeaders';
 import { existsSync, readFileSync } from 'fs';
 import { mkdirp } from 'mkdirp';
-
-
+const ip = "http://127.0.0.1:44444/" //YOUR IP HERE, WILL NOT WORK WITHOUT AN ACTUAL IP
 const headers = {
   'Allow': 'GET, HEAD, OPTION', 
   'Accept-Patch': 'application/text', 
@@ -71,8 +70,8 @@ function generateDirectorySimLDP(dirpath : string, hash: string, stats : any) : 
   return message;
 }
 async function hasPerms(dirname: string, webID : string, perms: any){
-    const aclUrl = 'http://24.250.32.37:44444/' + dirname + ".acl";
-    const fileUrl = 'http://24.250.32.37:44444/' + dirname;
+    const aclUrl = ip + dirname + ".acl";
+    const fileUrl = ip + dirname;
     const parser = new AclParser({ aclUrl, fileUrl });
     let doc = await parser.turtleToAclDoc((await fs.readFileSync(dirname + '.acl')).toString());
     let permvalid = true;
@@ -83,8 +82,8 @@ async function hasPerms(dirname: string, webID : string, perms: any){
 }
 
 async function getPublicPerms(dirname: string){
-  const aclUrl = 'http://24.250.32.37:44444/' + dirname + ".acl";
-  const fileUrl = 'http://24.250.32.37:44444/' + dirname;
+  const aclUrl = ip + dirname + ".acl";
+  const fileUrl = ip + dirname;
   const parser = new AclParser({ aclUrl, fileUrl });
   let doc = await parser.turtleToAclDoc((await fs.readFileSync(dirname + ".acl")).toString());
   let ret = [];
@@ -105,10 +104,10 @@ async function createACL(dirname: string, webId: string, superperms: any, userPe
       let segments = dirname.split('/')
       dirname = path.dirname(dirname) + "/" + segments[segments.length - 2];
     }
-    const aclUrl = 'http://24.250.32.37:44444/' + dirname + ".acl";
-    const fileUrl = 'http://24.250.32.37:44444/' + dirname;
+    const aclUrl = ip + dirname + ".acl";
+    const fileUrl = ip + dirname;
     const parser = new AclParser({ aclUrl, fileUrl });
-    const doc = new AclDoc({ accessTo: 'http://24.250.32.37:44444/' + dirname});
+    const doc = new AclDoc({ accessTo: ip + dirname});
     // Give Public SuperPerms
     doc.addRule(superperms, Agents.PUBLIC);
     // Give admin full perms;
@@ -123,8 +122,9 @@ async function MostRecentACLPerms(dirpath: string, webID: string){
   let above = path.dirname(dirpath);
   while(above.length != 0){
     if(existsSync(above + ".acl")){
-        const aclUrl = 'http://24.250.32.37:44444/' + above + ".acl";
-        const fileUrl = 'http://24.250.32.37:44444/' + above;
+
+        const aclUrl =  ip + above + ".acl";
+        const fileUrl = ip + above;
         const parser = new AclParser({ aclUrl, fileUrl });
         let doc = await parser.turtleToAclDoc((await fs.readFileSync(above + ".acl")).toString());
         let ret = [];
@@ -139,7 +139,7 @@ async function MostRecentACLPerms(dirpath: string, webID: string){
           }
           ret.push(doc.hasRule(potentialPerms[i], webID));
         }
-        return [ret, userPerms, ];
+        return [ret, userPerms];
     } else {
       above = path.dirname(above);
     }
@@ -174,7 +174,11 @@ export async function handleGet(req: Request, res: Response, webId : string) : P
   let message : any = ""
   try{
     const stats = fs.statSync(dirpath);
-    if(stats.isDirectory()) {
+    if(!hasPerms(dirpath, webId, [READ]) && !(await getPublicPerms(dirpath)).includes(READ) ){
+      message = "NO PERMS FOR GIVEN FILE";
+      res.status(409)
+    }
+    else if(stats.isDirectory()) {
         message = await generateDirectorySimLDP(dirpath, hash + req.url, stats);
         res.setHeader("Link", '<.acl>; rel="acl", <.meta>; rel="describedBy", <http://www.w3.org/ns/ldp#Container>; rel="type", <http://www.w3.org/ns/ldp#BasicContainer>; rel="type"');
         res.status(200);
@@ -189,8 +193,8 @@ export async function handleGet(req: Request, res: Response, webId : string) : P
     res.send(message);
   }
 }
-
-export async function editFile(req: Request, res: Response): Promise<void> {
+// Unused function to be deleted
+export async function editFile(req: Request, res: Response, webID : string): Promise<void> {
   const dirPath = req.url + "";
   const slug = req.headers.slug;
   const link = req.headers.link;
@@ -221,7 +225,12 @@ export async function handlePutRequest(req: Request, res: Response, webId: strin
   mkdirp.sync(path.dirname(dirpath));
   if (dirpath.slice(-1) === "/"){
     let publicperms, userpemrs, pbool = await MostRecentACLPerms(dirpath, webId);
-    let hasPerms = false;
+    //@ts-expect-error
+    if(userpemrs.includes(WRITE) || publicperms.includes(WRITE)){
+      res.status(402);
+      res.send("Delete Failed :(")
+      return
+    }
     if(pbool[1]){
       await fs.mkdirSync(dirpath, { recursive: true });
       await createACL(dirpath, webId, publicperms, userpemrs);
@@ -238,6 +247,12 @@ export async function deleteFile(req: Request, res: Response, webId: string) {
   var hash = "topLevelFolder"
   const dirPath = "UserData/" + hash + req.url;
   const dirPathWellFormed = await fs.statSync(dirPath).isDirectory();
+  // Check if delete perms exist.
+  if(!hasPerms(dirPath, webId, [CONTROL]) && !(await getPublicPerms(dirPath)).includes(CONTROL)){
+    res.status(402);
+    res.send("Delete Failed :(")
+    return
+  }
   if(dirPathWellFormed){
     let aclloc = dirPath + ".acl"
     fs.rm(dirPath, {recursive: true}, (err : any) => {

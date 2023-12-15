@@ -17,7 +17,7 @@ const app = express();
 app.use(cors())
 app.use(bodyParser.raw({ inflate: true, limit: '100kb', type: "*/*" }))
 const solidOidcAccessTokenVerifier: SolidTokenVerifierFunction = createSolidTokenVerifier();
-const ip = ""
+const ip = "127.0.0.1" // CHANGE TO ACTIVE, PUBLIC, PORT FORWARDED IP TO USE.
 //HTTPS Secure key stuff - will need to regenerate stuff on other devices:
 const fs = require('fs');
 const key = fs.readFileSync('./key.pem', 'utf8');
